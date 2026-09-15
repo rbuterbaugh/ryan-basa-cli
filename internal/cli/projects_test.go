@@ -528,3 +528,29 @@ func rowFor(t *testing.T, stdout, id string) string {
 
 	return ""
 }
+
+// See TestDealsListForwardsAnExplicitZeroLimit: all three list commands share
+// this flag, so they must agree about what a typed zero means.
+func TestProjectsListForwardsAnExplicitZeroLimit(t *testing.T) {
+	var query string
+	h := newHarness(t, projectsAPI(meWith("Acme Agency"), projectsBody, &query))
+	t.Setenv(config.EnvVarToken, "42|token")
+
+	_, _, _ = h.run("projects", "list", "--limit", "0", "--env", "local")
+
+	if !strings.Contains(query, "per_page=0") {
+		t.Errorf("per_page=0 should reach the server, got query %q", query)
+	}
+}
+
+func TestProjectsListOmitsAnUnsetLimit(t *testing.T) {
+	var query string
+	h := newHarness(t, projectsAPI(meWith("Acme Agency"), projectsBody, &query))
+	t.Setenv(config.EnvVarToken, "42|token")
+
+	_, _, _ = h.run("projects", "list", "--env", "local")
+
+	if strings.Contains(query, "per_page") {
+		t.Errorf("an unset --limit should send no per_page, got query %q", query)
+	}
+}

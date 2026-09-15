@@ -505,3 +505,19 @@ func TestDealsListSurfacesTheSellerHintRatherThanTheAdminFallback(t *testing.T) 
 		t.Errorf("the admin fallback must not appear for a seller; it is wrong advice:\n%s", stderr)
 	}
 }
+
+// `--limit 0` is not the same request as omitting --limit. It is a page size
+// the server rejects with its own 1-100 message, and folding it into the
+// default returned a full page and reported it as success -- the defect that
+// survived the --archived fix because Limit was still a plain int.
+func TestDealsListForwardsAnExplicitZeroLimit(t *testing.T) {
+	var query string
+	h := newHarness(t, apiFor(meWith("Acme Agency"), dealsBody, &query))
+	t.Setenv(config.EnvVarToken, "42|token")
+
+	_, _, _ = h.run("deals", "list", "--limit", "0", "--env", "local")
+
+	if !strings.Contains(query, "per_page=0") {
+		t.Errorf("per_page=0 should reach the server, got query %q", query)
+	}
+}

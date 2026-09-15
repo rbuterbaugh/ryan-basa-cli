@@ -37,10 +37,13 @@ This is the same approach the Basecamp CLI uses (`curl -fsSL https://basecamp.co
 
 ---
 
-## Prerequisite: the repository must be public
+## Why the repository is public
 
-**This is the one open decision.** The installer authenticates with nothing, which is what makes it a
-single pasteable line. Both halves need public access:
+**Settled: `Basa-Futura/basa-cli` is public, and publishes releases.** The reasoning is kept here
+because it is the kind of decision someone will want to re-litigate later.
+
+The installer authenticates with nothing, which is what makes it a single pasteable line. Both
+halves need public access:
 
 - `raw.githubusercontent.com/.../scripts/install.sh` — fetching the script itself
 - `github.com/.../releases/download/...` — fetching the binary and checksums
@@ -49,8 +52,8 @@ A private repository returns 404 for both. There is no way around that short of 
 on the operator's laptop, which is a long-lived secret on an unmanaged device — precisely what the
 short token lifetime elsewhere in this design exists to avoid.
 
-**The recommendation is to make `Basa-Futura/basa-cli` public**, and it is a much easier case to make
-than for the application repository:
+**Making `Basa-Futura/basa-cli` public** was a much easier case to make than it would be for the
+application repository:
 
 - It contains no business logic, no domain code, no credentials, and no customer data. It is a thin
   HTTP client, audited against that claim rather than against its size (see AUDIT.md) — the audit runs
@@ -62,8 +65,9 @@ than for the application repository:
 
 The application repository stays private either way. Nothing here changes that.
 
-Until the repository is public with at least one release, the installer fails with a clear message and
-points at the source build below. That is the current state.
+Both halves are now true, so the one-line install above works. The installer still fails with a clear
+message rather than a stack trace if it ever cannot resolve a release — which is what you would see
+during the window between a tag being pushed and its release workflow finishing.
 
 ## Publishing a release
 

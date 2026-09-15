@@ -42,10 +42,14 @@ func newContractsListCmd(deps *Deps) *cobra.Command {
 		Short: "List the team's contracts",
 		Args:  rejectStrayArgs("contracts list", "contracts show <id>"),
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runContractsList(cmd.Context(), deps, client.ContractFilters{
-				Status: status,
-				Limit:  limit,
-			})
+			filters := client.ContractFilters{Status: status}
+			// See the same guard on deals list: a typed --limit 0 belongs to
+			// the server's validation, not to this client's default.
+			if cmd.Flags().Changed("limit") {
+				filters.Limit = &limit
+			}
+
+			return runContractsList(cmd.Context(), deps, filters)
 		},
 	}
 

@@ -132,7 +132,13 @@ type PageMeta struct {
 type DealFilters struct {
 	Stage   string
 	Project string
-	Limit   int
+	// Limit is a POINTER so that "the flag was not given" and "the flag was
+	// given the value 0" stay distinguishable. They are not the same request:
+	// omitting it means "let the server choose", while `--limit 0` is an
+	// operator asking for a page size the server rejects with its 1-100
+	// message. Collapsing the two returned a default page and reported it as
+	// success -- the same defect ProjectFilters.Archived describes.
+	Limit *int
 	// Page is the paginator page to fetch. Zero means the server's first, and
 	// only the page-walking helpers ever set it.
 	Page int
@@ -149,12 +155,12 @@ func (f DealFilters) query() url.Values {
 	if f.Page > 0 {
 		q.Set("page", strconv.Itoa(f.Page))
 	}
-	// != 0 rather than > 0: the flag's zero value means "unset, let the server
-	// choose", but a negative value is the operator asking for something
-	// invalid, and the server's own 1-100 message is the right answer to that.
-	// Dropping it here returned a default page and looked like success.
-	if f.Limit != 0 {
-		q.Set("per_page", strconv.Itoa(f.Limit))
+	// Any value the operator actually typed is forwarded, 0 and negatives
+	// included: the server's own 1-100 message is the right answer to an
+	// invalid page size, and dropping it here returned a default page and
+	// looked like success.
+	if f.Limit != nil {
+		q.Set("per_page", strconv.Itoa(*f.Limit))
 	}
 	return q
 }
@@ -190,7 +196,8 @@ const maxPageSize = 100
 // eachDealsPage fetches every page of a listing in order and hands each raw
 // body to visit. The first page's paginator metadata decides how many follow.
 func (c *Client) eachDealsPage(ctx context.Context, teamID int64, filters DealFilters, visit func(body []byte) error) error {
-	filters.Limit = maxPageSize
+	pageSize := maxPageSize
+	filters.Limit = &pageSize
 	for page := 1; ; page++ {
 		filters.Page = page
 
@@ -328,7 +335,8 @@ type ContractPage struct {
 // ContractFilters are the query parameters the contracts listing accepts.
 type ContractFilters struct {
 	Status string
-	Limit  int
+	// Pointer: see DealFilters.Limit.
+	Limit *int
 }
 
 func (f ContractFilters) query() url.Values {
@@ -336,10 +344,11 @@ func (f ContractFilters) query() url.Values {
 	if f.Status != "" {
 		q.Set("status", f.Status)
 	}
-	// != 0 for the same reason as DealFilters: an out-of-range value is the
-	// operator asking for something invalid, and the server owns that message.
-	if f.Limit != 0 {
-		q.Set("per_page", strconv.Itoa(f.Limit))
+	// Pointer for the same reason as DealFilters: an out-of-range value, 0
+	// included, is the operator asking for something invalid, and the server
+	// owns that message.
+	if f.Limit != nil {
+		q.Set("per_page", strconv.Itoa(*f.Limit))
 	}
 	return q
 }
@@ -436,10 +445,11 @@ type ProjectFilters struct {
 	// shell writes whenever an interpolated variable is empty — is an operator
 	// asking for something invalid, and the server answers it with a 422 naming
 	// the valid values. Collapsing the two returned an active-only page and
-	// looked like success. Same defect the Limit field's != 0 comment describes.
+	// looked like success. Limit carries the same shape, for the same reason.
 	Archived *string
 	Search   string
-	Limit    int
+	// Pointer: see DealFilters.Limit.
+	Limit *int
 }
 
 func (f ProjectFilters) query() url.Values {
@@ -454,10 +464,11 @@ func (f ProjectFilters) query() url.Values {
 	if f.Search != "" {
 		q.Set("search", f.Search)
 	}
-	// != 0 for the same reason as DealFilters: an out-of-range value is the
-	// operator asking for something invalid, and the server owns that message.
-	if f.Limit != 0 {
-		q.Set("per_page", strconv.Itoa(f.Limit))
+	// Pointer for the same reason as DealFilters: an out-of-range value, 0
+	// included, is the operator asking for something invalid, and the server
+	// owns that message.
+	if f.Limit != nil {
+		q.Set("per_page", strconv.Itoa(*f.Limit))
 	}
 	return q
 }

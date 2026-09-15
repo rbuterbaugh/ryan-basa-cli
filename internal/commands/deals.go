@@ -49,11 +49,16 @@ func newDealsListCmd(deps *Deps) *cobra.Command {
 		Short: "List the team's deals",
 		Args:  rejectStrayArgs("deals list", "deals show <id>"),
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return runDealsList(cmd.Context(), deps, client.DealFilters{
-				Stage:   stage,
-				Project: project,
-				Limit:   limit,
-			}, all)
+			filters := client.DealFilters{Stage: stage, Project: project}
+			// Whether --limit was typed at all, not whether its value is
+			// non-zero. `--limit 0` must reach the server so its 1-100 message
+			// answers it, instead of being folded into the default page size
+			// and reported as a successful listing.
+			if cmd.Flags().Changed("limit") {
+				filters.Limit = &limit
+			}
+
+			return runDealsList(cmd.Context(), deps, filters, all)
 		},
 	}
 
@@ -66,7 +71,7 @@ func newDealsListCmd(deps *Deps) *cobra.Command {
 }
 
 func runDealsList(ctx context.Context, deps *Deps, filters client.DealFilters, all bool) error {
-	if all && filters.Limit != 0 {
+	if all && filters.Limit != nil {
 		return fail.UsageHint(
 			"--all fetches every page at the server's largest page size, so --limit has nothing left to set.",
 			"Pass one or the other.",

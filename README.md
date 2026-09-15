@@ -48,10 +48,10 @@ It works out your platform, verifies the download against the published checksum
 basa version          # check it worked
 ```
 
-> **This needs the repository to be public and to have a published release** — the installer
-> authenticates with nothing, which is what makes it one line. Neither is true yet, so today the
-> installer fails with a clear message and you build from source instead. See
-> [docs/INSTALL.md](docs/INSTALL.md) for both paths and the reasoning.
+> **This works because the repository is public and publishes releases** — the installer
+> authenticates with nothing, which is what makes it one line. Re-running it is also how you
+> upgrade: it overwrites the binary in place, and there is deliberately no self-update. See
+> [docs/INSTALL.md](docs/INSTALL.md) for the from-source path and the reasoning.
 
 ### 3. Log in
 
@@ -336,7 +336,7 @@ the two meet at HTTP and nowhere else — this module imports nothing from the a
 |---|---|
 | `basa-web` → `docs/cli/api.md` | The API reference: endpoints, gates, status codes |
 | `basa-web` → `docs/cli/scope.md` | Scope of record for both halves: what is in, what is cut, and why |
-| here → `docs/INSTALL.md` | Install, and the open hosting decision |
+| here → `docs/INSTALL.md` | Install, upgrade, and why the repository is public |
 
 ### Layout
 

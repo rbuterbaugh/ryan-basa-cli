@@ -47,7 +47,12 @@ func newProjectsListCmd(deps *Deps) *cobra.Command {
 		Short: "List the team's projects",
 		Args:  rejectStrayArgs("projects list", "projects show <id>"),
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			filters := client.ProjectFilters{Search: search, Limit: limit}
+			filters := client.ProjectFilters{Search: search}
+			// Same reasoning as --archived below: a typed --limit 0 belongs to
+			// the server's validation, not to this client's default.
+			if cmd.Flags().Changed("limit") {
+				filters.Limit = &limit
+			}
 			// Whether the operator typed --archived at all, not whether what
 			// they typed was non-empty. An empty value has to reach the server
 			// so its own message answers it, rather than being folded into the

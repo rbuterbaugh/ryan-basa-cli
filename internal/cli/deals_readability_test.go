@@ -242,3 +242,31 @@ func TestDealsListOrdersCorrectlyWithFractionalSecondTimestamps(t *testing.T) {
 		t.Errorf("the group touched in July must precede the one touched in May:\n%s", stdout)
 	}
 }
+
+// The zero case needs its own test. --all with --limit 0 rejects only because
+// the guard tests the pointer for nil rather than the value it points at; a
+// regression to checking the value would let zero slip through while every
+// other test here still passed. Also asserts the refusal happens before any
+// request: the conflict is decidable from the flags alone, so an operator who
+// mistyped this never touches the server.
+func TestDealsListAllAndAnExplicitZeroLimitIsAlsoAUsageError(t *testing.T) {
+	requests := 0
+	h := newHarness(t, func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(meWith("Acme Agency")))
+	})
+	t.Setenv(config.EnvVarToken, "42|t")
+
+	_, stderr, code := h.run("deals", "list", "--env", "local", "--all", "--limit", "0")
+
+	if code != 1 {
+		t.Fatalf("exit %d, want 1:\n%s", code, stderr)
+	}
+	if !strings.Contains(stderr, "--all") || !strings.Contains(stderr, "--limit") {
+		t.Errorf("should name both flags:\n%s", stderr)
+	}
+	if requests != 0 {
+		t.Errorf("a flag conflict should be decided before any request, got %d", requests)
+	}
+}

@@ -288,3 +288,29 @@ func TestContractsSurfacesTheServersValidationMessage(t *testing.T) {
 		t.Errorf("should surface the server's own message, got:\n%s", stderr)
 	}
 }
+
+// See TestDealsListForwardsAnExplicitZeroLimit: all three list commands share
+// this flag, so they must agree about what a typed zero means.
+func TestContractsListForwardsAnExplicitZeroLimit(t *testing.T) {
+	var query string
+	h := newHarness(t, contractsAPI(meWith("Acme Agency"), contractsBody, &query))
+	t.Setenv(config.EnvVarToken, "42|token")
+
+	_, _, _ = h.run("contracts", "list", "--limit", "0", "--env", "local")
+
+	if !strings.Contains(query, "per_page=0") {
+		t.Errorf("per_page=0 should reach the server, got query %q", query)
+	}
+}
+
+func TestContractsListOmitsAnUnsetLimit(t *testing.T) {
+	var query string
+	h := newHarness(t, contractsAPI(meWith("Acme Agency"), contractsBody, &query))
+	t.Setenv(config.EnvVarToken, "42|token")
+
+	_, _, _ = h.run("contracts", "list", "--env", "local")
+
+	if strings.Contains(query, "per_page") {
+		t.Errorf("an unset --limit should send no per_page, got query %q", query)
+	}
+}
